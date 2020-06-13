@@ -37,7 +37,7 @@ type structTimeouts struct {
 	WriteTotalTimeoutConstant   uint32
 }
 
-func openPort(name string, baud int, databits byte, parity Parity, stopbits StopBits, readTimeout time.Duration) (p *Port, err error) {
+func openPort(name string, baud int, databits byte, parity Parity, stopbits StopBits, readTimeout time.Duration, rtsFlow bool) (p *Port, err error) {
 	if len(name) > 0 && name[0] != '\\' {
 		name = "\\\\.\\" + name
 	}
@@ -59,7 +59,7 @@ func openPort(name string, baud int, databits byte, parity Parity, stopbits Stop
 		}
 	}()
 
-	if err = setCommState(h, baud, databits, parity, stopbits); err != nil {
+	if err = setCommState(h, baud, databits, parity, stopbits, rtsFlow); err != nil {
 		return nil, err
 	}
 	if err = setupComm(h, 64, 64); err != nil {
@@ -171,12 +171,15 @@ func getProcAddr(lib syscall.Handle, name string) uintptr {
 	return addr
 }
 
-func setCommState(h syscall.Handle, baud int, databits byte, parity Parity, stopbits StopBits) error {
+func setCommState(h syscall.Handle, baud int, databits byte, parity Parity, stopbits StopBits, rtsFlow bool) error {
 	var params structDCB
 	params.DCBlength = uint32(unsafe.Sizeof(params))
 
 	params.flags[0] = 0x01  // fBinary
 	params.flags[0] |= 0x10 // Assert DSR
+	if rtsFlow {
+		params.flags[0] |= 0x04 // fOutxCtsFlow
+	}
 
 	params.BaudRate = uint32(baud)
 
