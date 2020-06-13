@@ -1,4 +1,4 @@
-module github/jbdk/serial
+module github.com/jbdk/serial
 
 go 1.14
 
